@@ -324,6 +324,7 @@ html, body {
   justify-content: center;
   padding: 20px;
 }
+.modal-backdrop[hidden] { display: none; }
 .modal {
   position: relative;
   background: #1b1b1b;

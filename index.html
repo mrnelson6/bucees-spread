@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The Spread of Buc-ee's</title>
+  <meta name="description" content="Interactive map of every Buc-ee's location, 1982 to 2032 — scrub through time to watch the spread, including announced and projected future locations.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='42' fill='%23e03a3e'/><circle cx='50' cy='50' r='18' fill='%23f6c700'/></svg>">
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <div id="map"></div>
+
+  <header class="topbar">
+    <div class="titles">
+      <h1>The Spread of Buc-ee&rsquo;s</h1>
+      <p class="subtitle">1982 &rarr; 2032, projected</p>
+    </div>
+    <button id="aboutBtn" class="ghost-btn" type="button">About / Methodology</button>
+  </header>
+
+  <aside class="legend" id="legend">
+    <button class="legend-collapse" id="legendToggle" type="button" aria-label="Toggle legend">Legend</button>
+    <div class="legend-body">
+      <div class="legend-row" data-tier="open">
+        <span class="swatch swatch-open"></span>
+        <span>Open travel center</span>
+      </div>
+      <div class="legend-row" data-tier="open-store">
+        <span class="swatch swatch-store"></span>
+        <span>Original store (pre-2003 era)</span>
+      </div>
+      <div class="legend-row toggleable" data-tier="announced" role="button" tabindex="0" aria-pressed="true" title="Click to show/hide">
+        <span class="swatch swatch-announced"></span>
+        <span>Announced &middot; expected date</span>
+      </div>
+      <div class="legend-row toggleable" data-tier="speculative" role="button" tabindex="0" aria-pressed="true" title="Click to show/hide">
+        <span class="swatch swatch-speculative"></span>
+        <span>Speculative<small>editorial projection, not announced</small></span>
+      </div>
+    </div>
+  </aside>
+
+  <div class="controls">
+    <div class="spark-wrap">
+      <svg id="sparkline" preserveAspectRatio="none" aria-hidden="true"></svg>
+    </div>
+    <div class="control-row">
+      <button id="playBtn" class="play-btn" type="button" aria-label="Play">&#9654;</button>
+      <button id="speedBtn" class="ghost-btn speed-btn" type="button" aria-label="Playback speed">1&times;</button>
+      <input id="scrubber" type="range" min="0" max="611" step="1" value="0" aria-label="Timeline scrubber">
+      <div class="readout">
+        <div class="date-line">
+          <span id="dateDisplay">January 1982</span>
+          <span id="projectedBadge" class="badge" hidden>PROJECTED</span>
+        </div>
+        <div class="sub-line">
+          <span id="statsDisplay">&mdash;</span>
+          <span id="eraCaption" class="era" hidden>Original convenience stores era</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <div id="aboutModal" class="modal-backdrop" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="aboutTitle">
+      <button class="modal-close" id="aboutClose" type="button" aria-label="Close">&times;</button>
+      <h2 id="aboutTitle">About this map</h2>
+      <div id="aboutContent"></div>
+    </div>
+  </div>
+
+  <script src="vendor/leaflet/leaflet.js"></script>
+  <script src="data/locations.js"></script>
+  <script src="js/timeline.js"></script>
+  <script src="js/map.js"></script>
+  <script src="js/stats.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

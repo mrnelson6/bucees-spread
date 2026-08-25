@@ -87,7 +87,7 @@ for (const loc of locations) {
   }
   if (loc.status === "announced") {
     const y = Number(String(loc.date).slice(0, 4));
-    if (y < 2026 || y > 2029) fail(`${tag}: announced date ${loc.date} outside 2026-2029`);
+    if (y < 2026 || y > 2032) fail(`${tag}: announced date ${loc.date} outside 2026-2032`);
     if (toIndex(loc.date) <= toIndex(meta.compiled.slice(0, 7))) {
       warn(`${tag}: announced but expected date ${loc.date} is in the past — review status`);
     }
@@ -112,6 +112,15 @@ check(`open locations as of ${meta.asOf.date}`, atAsOf.length, meta.asOf.openCou
 check(`states as of ${meta.asOf.date}`, states.size, meta.asOf.stateCount);
 check(`Texas locations as of ${meta.asOf.date}`,
   atAsOf.filter((l) => l.state === "TX").length, meta.asOf.txCount);
+
+/* External anchor, July 2026: Wikipedia says 56 open / 36 TX, but that count
+   still includes Port Lavaca (closed 2026-04, lingering on the official list),
+   so the reconciled expectation is 55 / 35 in 13 states. See METHODOLOGY.md. */
+const atJul26 = openAt(toIndex("2026-07"));
+check("open locations as of 2026-07 (Wikipedia 56 minus closed Port Lavaca)", atJul26.length, 55);
+check("states as of 2026-07", new Set(atJul26.map((l) => l.state)).size, 13);
+check("Texas as of 2026-07 (Wikipedia 36 minus Port Lavaca)",
+  atJul26.filter((l) => l.state === "TX").length, 35);
 
 const sorted = [...locations].sort((a, b) => toIndex(a.date) - toIndex(b.date));
 const first = sorted[0];

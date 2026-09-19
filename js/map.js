@@ -1,5 +1,5 @@
 /* Leaflet map, tile layer, and the marker layer.
-   All ~105 markers are L.circleMarker on a shared canvas renderer, created once
+   All markers (every chain) are L.circleMarker on a shared canvas renderer, created once
    at startup. "Not yet open" = radius 0 + opacity 0 (which also removes them
    from canvas hit-testing). update() diffs visible sets and only touches
    markers whose visibility changed. */
@@ -11,7 +11,9 @@
     red: "#e03a3e",
     redStroke: "#ff8a8c",
     yellow: "#f6c700",
-    ghost: "#8d8464"
+    ghost: "#8d8464",
+    blue: "#2f8fe0",
+    blueStroke: "#a9d2f5"
   };
 
   var REDUCED_MOTION = window.matchMedia &&
@@ -27,6 +29,13 @@
   var lastState = null;    /* { t, toggles } for re-render on zoom */
 
   function tierStyle(loc) {
+    if (loc.chain === "culvers") {
+      /* ~1,000 restaurants: smaller dots than Buc-ee's travel centers. */
+      if (loc.status === "announced") {
+        return { radius: 4.5, color: COLORS.blueStroke, weight: 1.5, fillColor: COLORS.blue, fillOpacity: 0, opacity: 1 };
+      }
+      return { radius: 3.5, color: COLORS.blueStroke, weight: 0.8, fillColor: COLORS.blue, fillOpacity: 0.85, opacity: 0.9 };
+    }
     if (loc.status === "announced") {
       return { radius: 7, color: COLORS.yellow, weight: 2, fillColor: COLORS.yellow, fillOpacity: 0, opacity: 1 };
     }
@@ -47,16 +56,17 @@
 
   function popupHtml(loc) {
     var fmt = BUCEES.time.formatLocDate;
+    var cc = loc.chain === "culvers" ? " chain-culvers" : "";
     var html = '<div class="popup-name">' + escapeHtml(loc.name) + "</div>";
     html += '<div class="popup-place">' + escapeHtml(loc.city) + ", " + escapeHtml(loc.state) + "</div>";
     if (loc.status === "open") {
-      html += '<div class="popup-status-open">Opened ' + fmt(loc) + "</div>";
+      html += '<div class="popup-status-open' + cc + '">Opened ' + fmt(loc) + "</div>";
       if (loc.closed) {
         html += '<div class="popup-status-speculative">Closed ' +
           escapeHtml(loc.closed.split("-")[0]) + "</div>";
       }
     } else if (loc.status === "announced") {
-      html += '<div class="popup-status-announced">Expected ' + fmt(loc) + " &middot; announced</div>";
+      html += '<div class="popup-status-announced' + cc + '">Expected ' + fmt(loc) + " &middot; announced</div>";
     } else {
       html += '<div class="popup-status-speculative">SPECULATIVE &middot; projected ' + fmt(loc) + "</div>";
     }
@@ -111,11 +121,27 @@
   }
 
   function isVisible(loc, t, toggles) {
+    if (!toggles.chains[loc.chain]) return false;
     if (loc._idx > t) return false;
     if (loc._closedIdx !== null && loc._closedIdx <= t) return false;
     if (loc.status === "announced" && !toggles.announced) return false;
     if (loc.status === "speculative" && !toggles.speculative) return false;
     return true;
+  }
+
+  function keyParam() {
+    var key = window.BUCEES_CONFIG && BUCEES_CONFIG.cartoKey;
+    return key ? "?key=" + encodeURIComponent(key) : "";
+  }
+
+  /* Speculative entries never define the frame. */
+  function fitWhere(pred, animate) {
+    var bounds = [];
+    for (var i = 0; i < locations.length; i++) {
+      var loc = locations[i];
+      if (loc.status !== "speculative" && pred(loc)) bounds.push([loc.lat, loc.lng]);
+    }
+    if (bounds.length) map.fitBounds(bounds, { padding: [40, 40], animate: !!animate });
   }
 
   BUCEES.mapview = {
@@ -132,7 +158,7 @@
       map.zoomControl.setPosition("bottomright");
 
       var tiles = L.tileLayer(
-        "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+        "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" + keyParam(), {
           subdomains: "abcd",
           maxZoom: 19,
           attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
@@ -145,14 +171,9 @@
       });
       tiles.addTo(map);
 
-      /* Initial view: the whole non-speculative footprint. */
-      var bounds = [];
-      for (var i = 0; i < locations.length; i++) {
-        if (locations[i].status !== "speculative") {
-          bounds.push([locations[i].lat, locations[i].lng]);
-        }
-      }
-      map.fitBounds(bounds, { padding: [40, 40] });
+      /* Initial view (refined by fitChains once the chain mode is known).
+         Locations arrive with Buc-ee's last so its larger markers draw on top. */
+      fitWhere(function () { return true; }, false);
 
       for (var j = 0; j < locations.length; j++) {
         var m = L.circleMarker([locations[j].lat, locations[j].lng], tierStyle(locations[j]));
@@ -173,6 +194,11 @@
       });
 
       return map;
+    },
+
+    /* Frame the non-speculative footprint of the given chains. */
+    fitChains: function (chains, animate) {
+      fitWhere(function (loc) { return chains[loc.chain]; }, animate);
     },
 
     /* Pure function of (t, toggles): show/hide markers, animating small

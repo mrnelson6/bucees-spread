@@ -1,10 +1,14 @@
-# The Spread of Buc-ee's
+# The Spread of Buc-ee's (and Culver's)
 
 An interactive map of every Buc-ee's location from 1982 to a projected 2032.
 Drag the timeline scrubber (or press play) to watch the chain spread from a
 single convenience store in Lake Jackson, Texas into a multi-state network of
 giant travel centers — including officially announced future sites and a
 clearly-labeled speculative projection tier.
+
+A switcher in the header adds **Culver's**: every one of its ~1,100 restaurants,
+from Sauk City, Wisconsin in 1984, placed at its official opening date. **Both**
+overlays the two chains on one timeline. Modes are linkable: `#culvers`, `#both`.
 
 Plain HTML/CSS/JS. No build step, no framework, no API keys.
 
@@ -18,6 +22,16 @@ Either:
 An internet connection is needed for the basemap tiles (CARTO dark). Offline,
 the markers and timeline still work on a plain dark background.
 
+**Basemap key.** CARTO basemaps now require a free API key; without one the
+tiles show an "API KEY REQUIRED" watermark. Request a key at
+<https://carto.com/basemaps/apikey> (emailed immediately, 5M tiles/month free),
+restrict it to your site's domains in CARTO's key settings — it is visible to
+every visitor — and put it in `js/config.js`:
+
+```js
+window.BUCEES_CONFIG = { cartoKey: "YOUR_KEY" };
+```
+
 ## Controls
 
 | Control | Action |
@@ -27,6 +41,7 @@ the markers and timeline still work on a plain dark background.
 | 1× / 2× / 4× | Playback speed (1× = 12 months per second) |
 | ← / → / Home / End | Step one month / jump to ends |
 | Legend rows | Click "Announced" or "Speculative" to show/hide those tiers |
+| Buc-ee's / Culver's / Both | Switch chain (also `#culvers`, `#both` in the URL) |
 
 ## Data
 
@@ -48,6 +63,21 @@ Validate the dataset after editing it:
 node scripts/validate.mjs
 ```
 
+### Culver's
+
+`data/culvers.js` (`window.CULVERS_DATA`, same location schema, `kind:
+"restaurant"`) is generated, not hand-edited. Rebuild it from Culver's own
+restaurant locator — every restaurant's opening date and restaurant number — with:
+
+```
+python scripts/build_culvers.py
+```
+
+The script (standard library only) crawls the locator, marks restaurants with a
+future opening date as `announced`, checks the result against independent
+anchors, and refuses to write the file if any check fails. Details in
+[`data/METHODOLOGY.md`](data/METHODOLOGY.md#culvers).
+
 ## Deploy
 
 The repo is deployable as-is to any static host (GitHub Pages, Netlify, …).
@@ -59,4 +89,5 @@ Basemap © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors
 © [CARTO](https://carto.com/attributions). Map rendering by
 [Leaflet](https://leafletjs.com) 1.9.4 (vendored in `vendor/leaflet/`).
 
-Fan-made visualization; not affiliated with or endorsed by Buc-ee's Ltd.
+Fan-made visualization; not affiliated with or endorsed by Buc-ee's Ltd. or
+Culver Franchising System, LLC.

@@ -10,7 +10,40 @@
     }
 
     var time = BUCEES.time;
-    var locations = BUCEES_DATA.locations;
+
+    /* Chains, in draw order (later chains draw on top). Culver's is optional
+       so the Buc-ee's map still works if data/culvers.js fails to load. */
+    var CHAINS = {
+      culvers: { short: "Culver's", unit: "restaurant", units: "restaurants", data: window.CULVERS_DATA },
+      bucees: { short: "Buc-ee's", unit: "store", units: "stores", data: BUCEES_DATA }
+    };
+    var MODES = {
+      bucees: {
+        chains: { bucees: true, culvers: false },
+        title: "The Spread of Buc-ee’s",
+        subtitle: "1982 → 2032, projected"
+      },
+      culvers: {
+        chains: { bucees: false, culvers: true },
+        title: "The Spread of Culver’s",
+        subtitle: "1984 → today, every restaurant"
+      },
+      both: {
+        chains: { bucees: true, culvers: true },
+        title: "Buc-ee’s vs. Culver’s",
+        subtitle: "Two chains, one timeline"
+      }
+    };
+    var hasCulvers = !!(window.CULVERS_DATA && CULVERS_DATA.locations);
+    if (!hasCulvers) delete CHAINS.culvers;
+
+    var locations = [];
+    Object.keys(CHAINS).forEach(function (chain) {
+      CHAINS[chain].data.locations.forEach(function (loc) {
+        loc.chain = chain;
+        locations.push(loc);
+      });
+    });
 
     /* Derived, never stored in the dataset. */
     locations.forEach(function (loc) {
@@ -21,12 +54,13 @@
     var todayIdx = time.todayIndex();
     var firstTravelCenterIdx = Infinity;
     locations.forEach(function (loc) {
-      if (loc.kind === "travel-center" && loc._idx < firstTravelCenterIdx) {
+      if (loc.chain === "bucees" && loc.kind === "travel-center" && loc._idx < firstTravelCenterIdx) {
         firstTravelCenterIdx = loc._idx;
       }
     });
 
-    var toggles = { announced: true, speculative: true };
+    var mode = "bucees";
+    var toggles = { announced: true, speculative: true, chains: MODES.bucees.chains };
 
     /* ---------- DOM ---------- */
     var scrubber = document.getElementById("scrubber");
@@ -54,6 +88,7 @@
     });
 
     BUCEES.stats.init(locations, {
+      chains: CHAINS,
       todayIndex: todayIdx,
       statsEl: document.getElementById("statsDisplay"),
       sparklineEl: document.getElementById("sparkline"),
@@ -69,8 +104,54 @@
       var projected = t > todayIdx;
       projectedBadge.hidden = !projected;
       dateLine.classList.toggle("projected", projected);
-      eraCaption.hidden = !(t < firstTravelCenterIdx);
+      eraCaption.hidden = !(mode === "bucees" && t < firstTravelCenterIdx);
     }
+
+    /* ---------- Chain switcher ---------- */
+    var titleEl = document.getElementById("title");
+    var subtitleEl = document.getElementById("subtitle");
+    var switchBtns = document.querySelectorAll(".chain-switch button");
+    var chainScoped = document.querySelectorAll("[data-chains]");
+
+    if (!hasCulvers) document.querySelector(".chain-switch").hidden = true;
+
+    function modeFromHash() {
+      var h = location.hash.replace("#", "");
+      return hasCulvers && MODES[h] ? h : "bucees";
+    }
+
+    function setMode(m, fromLoad) {
+      mode = m;
+      var def = MODES[m];
+      toggles.chains = def.chains;
+      document.body.setAttribute("data-mode", m);
+      titleEl.textContent = def.title;
+      subtitleEl.textContent = def.subtitle;
+      document.title = def.title;
+      switchBtns.forEach(function (b) {
+        b.setAttribute("aria-pressed", String(b.getAttribute("data-mode") === m));
+      });
+      /* Legend rows, swatches, and About sections declare which chains they
+         belong to; show them when any of those chains is active. */
+      chainScoped.forEach(function (el) {
+        el.hidden = !el.getAttribute("data-chains").split(" ").some(function (c) {
+          return def.chains[c];
+        });
+      });
+      BUCEES.stats.setChains(def.chains);
+      BUCEES.mapview.fitChains(def.chains, !fromLoad);
+      if (!fromLoad) render(BUCEES.timeline.getTime(), false);
+    }
+
+    switchBtns.forEach(function (b) {
+      b.addEventListener("click", function () {
+        var m = b.getAttribute("data-mode");
+        history.replaceState(null, "", m === "bucees" ? location.pathname + location.search : "#" + m);
+        setMode(m);
+        b.blur();
+      });
+    });
+    window.addEventListener("hashchange", function () { setMode(modeFromHash()); });
 
     BUCEES.timeline.init({
       startIndex: todayIdx,
@@ -142,7 +223,9 @@
     /* ---------- About modal ---------- */
     var modal = document.getElementById("aboutModal");
     var meta = BUCEES_DATA.meta || {};
-    document.getElementById("aboutContent").innerHTML = buildAbout(meta);
+    document.getElementById("aboutContent").innerHTML = buildAbout(meta) +
+      (hasCulvers ? buildCulversAbout(CULVERS_DATA.meta || {}) : "");
+    chainScoped = document.querySelectorAll("[data-chains]");
     document.getElementById("aboutBtn").addEventListener("click", function () {
       modal.hidden = false;
     });
@@ -156,9 +239,8 @@
       if (e.key === "Escape") modal.hidden = true;
     });
 
-    function buildAbout(meta) {
-      var asOf = meta.asOf || {};
-      var srcs = (meta.sources || []).map(function (s) {
+    function sourceList(meta) {
+      return (meta.sources || []).map(function (s) {
         var safe = String(s).replace(/[&<>"]/g, function (c) {
           return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
         });
@@ -166,7 +248,13 @@
           ? '<li><a href="' + safe + '" target="_blank" rel="noopener">' + safe + "</a></li>"
           : "<li>" + safe + "</li>";
       }).join("");
+    }
+
+    function buildAbout(meta) {
+      var asOf = meta.asOf || {};
+      var srcs = sourceList(meta);
       return (
+        '<div data-chains="bucees">' +
         "<p>Every Buc-ee&rsquo;s location on one timeline: drag the scrubber or press play to " +
         "watch the chain spread from a single 1982 convenience store in Lake Jackson, Texas " +
         "to a multi-state network of giant travel centers.</p>" +
@@ -195,11 +283,39 @@
         "</ul>" +
         "<h3>Sources</h3><ul>" + srcs + "</ul>" +
         '<p class="fine">Fan-made visualization; not affiliated with or endorsed by Buc-ee&rsquo;s Ltd. ' +
-        "Basemap &copy; OpenStreetMap contributors &copy; CARTO.</p>"
+        "Basemap &copy; OpenStreetMap contributors &copy; CARTO.</p>" +
+        "</div>"
+      );
+    }
+
+    function buildCulversAbout(meta) {
+      var asOf = meta.asOf || {};
+      return (
+        '<div data-chains="culvers">' +
+        '<h3 class="about-chain">Culver&rsquo;s</h3>' +
+        "<p>Every Culver&rsquo;s restaurant open today, placed on the timeline at its official " +
+        "opening date &mdash; from the first ButterBurger stand in Sauk City, Wisconsin (July 1984) " +
+        "to " + (asOf.openCount ? asOf.openCount.toLocaleString("en-US") : "?") + " restaurants in " +
+        (asOf.stateCount || "?") + " states as of " + (meta.compiled || "?") + ".</p>" +
+        "<ul>" +
+        "<li><b>Open</b> (blue dot) &mdash; opening dates are Culver&rsquo;s own, from the " +
+        "restaurant locator on culvers.com.</li>" +
+        "<li><b>Announced</b> (blue ring) &mdash; locations listed by Culver&rsquo;s with a future " +
+        "opening date.</li>" +
+        "<li>Only restaurants operating today are included. Culver&rsquo;s has closed very few " +
+        "restaurants (one or two a year per its franchise disclosures), so historical counts run " +
+        "only slightly low.</li>" +
+        "<li>No speculative tier: Culver&rsquo;s opens 50+ restaurants a year, too many to project " +
+        "site by site.</li>" +
+        "</ul>" +
+        "<h3>Sources</h3><ul>" + sourceList(meta) + "</ul>" +
+        '<p class="fine">Fan-made visualization; not affiliated with or endorsed by Culver Franchising System, LLC.</p>' +
+        "</div>"
       );
     }
 
     /* ---------- First paint ---------- */
+    setMode(modeFromHash(), true);
     render(todayIdx, false);
   });
 })();

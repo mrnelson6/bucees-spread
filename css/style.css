@@ -315,6 +315,11 @@ body[data-mode="both"] .spark-fill { fill-opacity: 0.6; }
 
 /* ---------- Leaflet overrides ---------- */
 .leaflet-container { font-family: inherit; }
+/* Turn the light OSM tiles into a muted dark basemap. Markers live in a
+   different pane, so their colors are untouched. */
+.leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) grayscale(0.85) brightness(0.8) contrast(0.9);
+}
 .leaflet-control-attribution {
   background: rgba(19, 19, 19, 0.7) !important;
   color: #888 !important;

@@ -19,18 +19,9 @@ Either:
 - **Open `index.html` directly** in a browser (works from `file://`), or
 - Serve the folder: `npx serve .` and open the printed URL.
 
-An internet connection is needed for the basemap tiles (CARTO dark). Offline,
-the markers and timeline still work on a plain dark background.
-
-**Basemap key.** CARTO basemaps now require a free API key; without one the
-tiles show an "API KEY REQUIRED" watermark. Request a key at
-<https://carto.com/basemaps/apikey> (emailed immediately, 5M tiles/month free),
-restrict it to your site's domains in CARTO's key settings — it is visible to
-every visitor — and put it in `js/config.js`:
-
-```js
-window.BUCEES_CONFIG = { cartoKey: "YOUR_KEY" };
-```
+An internet connection is needed for the basemap tiles (standard OpenStreetMap
+tiles, no API key, darkened with a CSS filter). Offline, the markers and timeline
+still work on a plain dark background.
 
 ## Controls
 
@@ -85,8 +76,7 @@ The repo is deployable as-is to any static host (GitHub Pages, Netlify, …).
 
 ## Credits
 
-Basemap © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors
-© [CARTO](https://carto.com/attributions). Map rendering by
+Basemap © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors. Map rendering by
 [Leaflet](https://leafletjs.com) 1.9.4 (vendored in `vendor/leaflet/`).
 
 Fan-made visualization; not affiliated with or endorsed by Buc-ee's Ltd. or

@@ -129,11 +129,6 @@
     return true;
   }
 
-  function keyParam() {
-    var key = window.BUCEES_CONFIG && BUCEES_CONFIG.cartoKey;
-    return key ? "?key=" + encodeURIComponent(key) : "";
-  }
-
   /* Speculative entries never define the frame. */
   function fitWhere(pred, animate) {
     var bounds = [];
@@ -158,10 +153,10 @@
       map.zoomControl.setPosition("bottomright");
 
       var tiles = L.tileLayer(
-        "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" + keyParam(), {
-          subdomains: "abcd",
+        /* Standard OSM tiles (no key); darkened by a CSS filter on the tile pane. */
+        "https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
           maxZoom: 19,
-          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         });
       var tileFailed = false;
       tiles.on("tileerror", function () {

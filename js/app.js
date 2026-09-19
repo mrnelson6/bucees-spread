@@ -283,7 +283,7 @@
         "</ul>" +
         "<h3>Sources</h3><ul>" + srcs + "</ul>" +
         '<p class="fine">Fan-made visualization; not affiliated with or endorsed by Buc-ee&rsquo;s Ltd. ' +
-        "Basemap &copy; OpenStreetMap contributors &copy; CARTO.</p>" +
+        "Basemap &copy; OpenStreetMap contributors.</p>" +
         "</div>"
       );
     }
